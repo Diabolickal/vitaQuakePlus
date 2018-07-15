@@ -3,7 +3,7 @@
 This is a crowd sourced effort to enhance Rinnagatamante's [vitaQuake engine](https://github.com/Rinnegatamante/vitaQuake)
 This vitaQuake version is based on February 14th commit of vitaQuake.
 
-If you add a feature thats not specifc to the project you're working that vitaQuakePlus could benefit from, feel free to do a pull request.
+If you add a feature thats not specifc to the project you're working that vitaQuake+ could benefit from, feel free to do a pull request.
 
 ## Base Features (vanilla vitaQuake)
 •Hardware accelerated GPU rendering
@@ -27,7 +27,7 @@ If you add a feature thats not specifc to the project you're working that vitaQu
 •Quake map colored lighting via .lit files
 
 
-## vitaQuakePlus Features
+## vitaQuake+ Features
 •HLBSP support
 
 •HLBSP Wad support
