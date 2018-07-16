@@ -1,4 +1,4 @@
-# vitaQuakePlus
+# vitaQuake+
 
 This is a crowd sourced effort to enhance Rinnagatamante's [vitaQuake engine](https://github.com/Rinnegatamante/vitaQuake)
 This vitaQuake version is based on February 14th commit of vitaQuake.
