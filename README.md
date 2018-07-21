@@ -40,3 +40,13 @@ If you add a feature thats not specifc to the project you're working that vitaQu
 
 •External TGA texture support for map textures
 
+
+## TODO
+•Skybox Support
+
+•MD2 model support
+
+•QMB Particles
+
+•Custom Map Browser
+
