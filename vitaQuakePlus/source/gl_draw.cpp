@@ -778,8 +778,8 @@ void Draw_Character (int x, int y, int num)
 	
 	GL_Bind (char_texture);
 
-	DrawQuad(x, y, 8, 8, fcol, frow, size, size);
-	//DrawQuad(x*cl_textscale.value, y*cl_textscale.value, 8*cl_textscale.value, 8*cl_textscale.value, fcol, frow, size, size);		//Diabolickal text scaling
+	//DrawQuad(x, y, 8, 8, fcol, frow, size, size);
+	DrawQuad(x*cl_textscale.value, y*cl_textscale.value, 8*cl_textscale.value, 8*cl_textscale.value, fcol, frow, size, size);		//Diabolickal text scaling
 	
 }
 
