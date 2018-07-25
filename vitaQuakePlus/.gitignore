@@ -41,3 +41,10 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+*.velf
+*.elf
+*.o
+*.elf
+*.sfo
+*.o

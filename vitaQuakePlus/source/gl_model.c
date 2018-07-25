@@ -371,7 +371,7 @@ void Mod_LoadTextures (lump_t *l)
 		if ( (mt->width & 15) || (mt->height & 15) )
 			Sys_Error ("Texture %s is not 16 aligned", mt->name);
 		pixels = mt->width*mt->height/64*85;
-		tx = (texture_t*)Hunk_AllocName (sizeof(texture_t) +pixels, loadname );
+		tx = (texture_t*)Hunk_AllocName (sizeof(texture_t), loadname );
 		loadmodel->textures[i] = tx;
 
 		memcpy (tx->name, mt->name, sizeof(tx->name));
@@ -386,7 +386,7 @@ void Mod_LoadTextures (lump_t *l)
 		//Diabolickal HLBSP
 		if (!Q_strncmp(mt->name,"sky",3))
 		{
-			R_InitSky (tx);
+			R_InitSky (mt);
  		}
 		else
 		{
@@ -396,9 +396,8 @@ void Mod_LoadTextures (lump_t *l)
 			if ((data = WAD3_LoadTexture(mt)))
 			  {
 				texture_mode = GL_LINEAR_MIPMAP_NEAREST;
-				//tx->gl_texturenum = GL_LoadTexture32 (mt->name, tx->width, tx->height, (byte *)data, true, false);		//Diabolickal TGA map textures
 				sprintf (texname, "textures/%s", mt->name);
-				tx->gl_texturenum = loadtextureimage (texname, 0, 0, qfalse, qtrue);
+				tx->gl_texturenum = loadtextureimage (texname, 0, 0, qfalse, qtrue);			//Diabolickal TGA textures
 				if (tx->gl_texturenum == 0)// did not find a matching TGA...
 				{
 					tx->gl_texturenum = GL_LoadTexture32 (mt->name, tx->width, tx->height, (byte *)data, true, false);
@@ -409,7 +408,7 @@ void Mod_LoadTextures (lump_t *l)
 		   else
 			{
 				texture_mode = GL_LINEAR;
-				tx->gl_texturenum = GL_LoadTexture (mt->name, tx->width, tx->height, (byte *)(tx+1), true, false, 1);
+				tx->gl_texturenum = GL_LoadTexture (mt->name, tx->width, tx->height, (byte *)(mt+1), true, false, 1);
 			}
 		}
 	}
