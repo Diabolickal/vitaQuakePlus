@@ -7,9 +7,9 @@ NOTE: Use this repo's version of vitaGL currently. In the future I may update th
 
 If you add a feature thats not specifc to the project you're working that vitaQuake+ could benefit from, feel free to do a pull request.
 
-##Installation
+## Installation
 These instructions assume you have a hacked/jailbroken/enso-ed Vita with molecularShell or VitaShell.
-•Download vitaQuakePlus.vpk (right click > save as)
+•Download vitaQuakePlus.vpk (clone or download git)
 •FTP into the Vita via FTP client (e.g. FileZilla)
 •Copy vitaQuakePlus.vpk into the 'ux0:' folder
 •Select vitaQuakePlus.vpk and press X to install
