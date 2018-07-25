@@ -10,13 +10,21 @@ If you add a feature thats not specifc to the project you're working that vitaQu
 ## Installation
 These instructions assume you have a hacked/jailbroken/enso-ed Vita with molecularShell or VitaShell.
 •Download vitaQuakePlus.vpk (clone or download git)
+
 •FTP into the Vita via FTP client (e.g. FileZilla)
+
 •Copy vitaQuakePlus.vpk into the 'ux0:' folder
+
 •Select vitaQuakePlus.vpk and press X to install
+
 •Navigate to ux0:data/ folder
+
 •You should see a folder named Quake
+
 •Inside Quake you should see id1 folder
+
 •Place your shareware quake (pak0.pak) or LEGALLY obtained pak1.pak file in the id1 folder
+
 •Now select vitaQuakePlus from your home screen and enjoy!
 
 ## Base Features (vanilla vitaQuake)
