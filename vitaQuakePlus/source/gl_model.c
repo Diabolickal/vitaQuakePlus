@@ -1520,7 +1520,7 @@ Mod_LoadAllSkins
 void *Mod_LoadAllSkins (int numskins, daliasskintype_t *pskintype)
 {
 	int		i, j, k;
-	char	name[32];
+	char	name[32], model[64], model2[64];						//Diabolickal External Textures (model[64] and model2[64])
 	int		s;
 	byte	*copy;
 	byte	*skin;
@@ -1547,14 +1547,28 @@ void *Mod_LoadAllSkins (int numskins, daliasskintype_t *pskintype)
 				pheader->texels[i] = texels - (byte *)pheader;
 				memcpy (texels, (byte *)(pskintype + 1), s);
 	//		}
-			sprintf (name, "%s_%i", loadmodel->name, i);
+			COM_StripExtension(loadmodel->name, model);
+			sprintf (model2, "%s_%i", model, i);
 			pheader->gl_texturenum[i][0] =
 			pheader->gl_texturenum[i][1] =
 			pheader->gl_texturenum[i][2] =
 			pheader->gl_texturenum[i][3] =
-				GL_LoadTexture (name, pheader->skinwidth, 
+			loadtextureimage(model2, 0, 0, false, true);			//Diabolickal External Textures Start
+			if (pheader->gl_texturenum[i][0] == 0)// did not find a matching TGA...
+				{
+					sprintf(name, "%s_%i", loadmodel->name, i);
+					pheader->gl_texturenum[i][0] =
+					pheader->gl_texturenum[i][1] =
+					pheader->gl_texturenum[i][2] =
+					pheader->gl_texturenum[i][3] =
+					GL_LoadTexture(name, pheader->skinwidth, pheader->skinheight, (byte *)(pskintype + 1), true, false, 1);
+			
+				}
+				pskintype = (daliasskintype_t *)((byte *)(pskintype+1) + s);
+				//Diabolickal External Textures End
+				/*GL_LoadTexture (name, pheader->skinwidth, 
 				pheader->skinheight, (byte *)(pskintype + 1), true, false, 1);
-			pskintype = (daliasskintype_t *)((byte *)(pskintype+1) + s);
+			pskintype = (daliasskintype_t *)((byte *)(pskintype+1) + s);*/			//Diabolickal External Textures 
 		} else {
 			// animating skin group.  yuck.
 			pskintype++;
@@ -1926,7 +1940,7 @@ void * Mod_LoadSpriteFrame (void * pin, mspriteframe_t **ppframe, int framenum)
 	int					i, width, height, size, origin[2];
 	unsigned short		*ppixout;
 	byte				*ppixin;
-	char				name[64];
+	char				name[64], sprite[64], sprite2[64];
 
 	pinframe = (dspriteframe_t *)pin;
 
@@ -1950,8 +1964,21 @@ void * Mod_LoadSpriteFrame (void * pin, mspriteframe_t **ppframe, int framenum)
 	pspriteframe->left = origin[0];
 	pspriteframe->right = width + origin[0];
 
+	//Diabolickal External Textures Start
+	/*
 	sprintf (name, "%s_%i", loadmodel->name, framenum);
-	pspriteframe->gl_texturenum = GL_LoadTexture (name, width, height, (byte *)(pinframe + 1), true, true, 1);
+	pspriteframe->gl_texturenum = GL_LoadTexture (name, width, height, (byte *)(pinframe + 1), true, true, 1);*/
+
+	COM_StripExtension(loadmodel->name, sprite);
+	sprintf(sprite2, "%s_%i", sprite, framenum);
+
+	pspriteframe->gl_texturenum = loadtextureimage(sprite2, 0, 0, false, true);
+	if (pspriteframe->gl_texturenum == 0)// did not find a matching TGA...
+	{
+		sprintf(name, "%s_%i", loadmodel->name, framenum);
+		pspriteframe->gl_texturenum = GL_LoadTexture(name, width, height, (byte *)(pinframe + 1), true, true, 1);
+	}
+	//Diabolickal External Textures End
 
 	return (void *)((byte *)pinframe + sizeof (dspriteframe_t) + size);
 }

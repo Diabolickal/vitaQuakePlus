@@ -335,6 +335,13 @@ void R_DrawSpriteModel (entity_t *e)
 	vec3_t		v_forward, v_right, v_up;
 	msprite_t		*psprite;
 
+	//Diabolickal External Textures Start
+	GL_DisableState(GL_ALPHA_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	GL_EnableState(GL_BLEND);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	//Diabolickal External Textures End
+
 	// don't even bother culling, because it's just a single
 	// polygon without a surface cache
 	frame = R_GetSpriteFrame (e);
@@ -384,8 +391,12 @@ void R_DrawSpriteModel (entity_t *e)
 	vglVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 4, texCoords);
 	GL_DrawPolygon(GL_TRIANGLE_FAN, 4);
 
+	
+	//Diabolickal External Textures Start
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	GL_DisableState(GL_BLEND);
 	GL_DisableState(GL_ALPHA_TEST);
-
+	//Diabolickal External Textures End
 }
 
 /*
@@ -1097,6 +1108,13 @@ void R_DrawAliasModel (entity_t *e)
 	int			anim;
 	md2_t		*pheader;		//Diabolickal MD2 Support
 	
+	//Diabolickal External Textures Start
+	glDisable(GL_ALPHA_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	
+	
 	bool    torch = false; // Flags is this model is a torch
 	clmodel = currententity->model;
 
@@ -1268,12 +1286,18 @@ void R_DrawAliasModel (entity_t *e)
 		}
 	}
 
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glDisable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	
 	GL_EnableState(GL_REPLACE);
 
 	//->glShadeModel (GL_FLAT);
 	//->if (gl_affinemodels.value)
 	//->	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
+	
+	
  if (clmodel->aliastype != ALIASTYPE_MD2)											//Diabolickal MD2 Support
 	{																				//Diabolickal MD2 Support
 
@@ -1416,6 +1440,8 @@ void R_DrawAliasModel (entity_t *e)
 	}
 	
 	}																										//Diabolickal MD2 Support
+	
+
 
 }
 
