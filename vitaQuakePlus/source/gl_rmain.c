@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 entity_t	r_worldentity;
 
+
 bool	r_cache_thrash;		// compatability
 
 vec3_t		modelorg, r_entorigin;
@@ -835,6 +836,246 @@ void R_SetupAliasBlendedFrame (int frame, aliashdr_t *paliashdr, entity_t* e)
 	GL_DrawAliasBlendedFrame (paliashdr, e->pose1, e->pose2, blend);
 }
 
+
+//Diabolickal MD2 Support Start
+/*
+
+=============
+
+GL_DrawQ2AliasFrame
+
+=============
+
+*/
+
+void GL_DrawQ2AliasFrame (entity_t *e, md2_t *pheader, int lastpose, int pose, float lerp)
+{
+	
+	float	ilerp;
+	int		*order, count;
+	md2trivertx_t	*verts1, *verts2;
+	vec3_t	scale1, translate1, scale2, translate2;
+	md2frame_t *frame1, *frame2;
+
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	//glShadeModel(GL_SMOOTH);
+
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+//		glBlendFunc(GL_ONE, GL_ZERO);
+//		glDisable(GL_BLEND);
+		glDepthMask(1);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	
+	ilerp = 1.0 - lerp;
+
+	//new version by muff - fixes bug, easier to read, faster (well slightly)
+	frame1 = (md2frame_t *)((int) pheader + pheader->ofs_frames + (pheader->framesize * lastpose));
+	frame2 = (md2frame_t *)((int) pheader + pheader->ofs_frames + (pheader->framesize * pose));
+
+	VectorCopy(frame1->scale, scale1);
+	VectorCopy(frame1->translate, translate1);
+	VectorCopy(frame2->scale, scale2);
+	VectorCopy(frame2->translate, translate2);
+	verts1 = &frame1->verts[0];
+	verts2 = &frame2->verts[0];
+	order = (int *)((int)pheader + pheader->ofs_glcmds);
+	
+	while (1)
+	{
+		// get the vertex count and primitive type
+		count = *order++;
+		if (!count)
+			break;		// done
+		if (count < 0)
+		{			
+			count = -count;
+			glBegin (GL_TRIANGLE_FAN);
+		}
+		else
+		{
+			
+			glBegin (GL_TRIANGLE_STRIP);
+			
+		}
+		do
+		{
+			glTexCoord2f(((float *)order)[0], ((float *)order)[1]);
+			
+			glVertex3f((verts1[order[2]].v[0]*scale1[0]+translate1[0])*ilerp+(verts2[order[2]].v[0]*scale2[0]+translate2[0])*lerp,
+					   (verts1[order[2]].v[1]*scale1[1]+translate1[1])*ilerp+(verts2[order[2]].v[1]*scale2[1]+translate2[1])*lerp,
+					   (verts1[order[2]].v[2]*scale1[2]+translate1[2])*ilerp+(verts2[order[2]].v[2]*scale2[2]+translate2[2])*lerp);
+				   
+			order+=3;
+		} while (--count);
+		glEnd ();
+	}
+	
+
+
+
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // normal alpha blend
+
+	glDisable(GL_BLEND);
+
+	glDepthMask(1);
+
+//	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+}
+
+
+
+
+
+/*
+
+=============
+
+GL_DrawQ2AliasShadow
+
+=============
+
+*/
+
+void GL_DrawQ2AliasShadow (entity_t *e, md2_t *pheader, int lastpose, int pose, float lerp)
+{
+	//Diabolickal MD2 support (disabled shadows)
+	return;
+	
+	float	ilerp, height, lheight;
+	int		*order, count;
+	md2trivertx_t	*verts1, *verts2;
+	vec3_t	scale1, translate1, scale2, translate2, point;
+	md2frame_t *frame1, *frame2;
+
+	lheight = currententity->origin[2] - lightspot[2];
+
+	height = 0;
+
+	ilerp = 1.0 - lerp;
+
+	//new version by muff - fixes bug, easier to read, faster (well slightly)
+	frame1 = (md2frame_t *)((int) pheader + pheader->ofs_frames + (pheader->framesize * lastpose));
+	frame2 = (md2frame_t *)((int) pheader + pheader->ofs_frames + (pheader->framesize * pose));
+
+	VectorCopy(frame1->scale, scale1);
+	VectorCopy(frame1->translate, translate1);
+	VectorCopy(frame2->scale, scale2);
+	VectorCopy(frame2->translate, translate2);
+	verts1 = &frame1->verts[0];
+	verts2 = &frame2->verts[0];
+	order = (int *)((int) pheader + pheader->ofs_glcmds);
+
+	height = -lheight + 1.0;
+	while (1)
+	{
+		// get the vertex count and primitive type
+		count = *order++;
+		if (!count)
+			break;		// done
+		if (count < 0)
+		{
+			count = -count;
+			glBegin (GL_TRIANGLE_FAN);
+		}
+		else
+			glBegin (GL_TRIANGLE_FAN);
+		do
+		{
+			point[0] = (verts1[order[2]].v[0]*scale1[0]+translate1[0])*ilerp+(verts2[order[2]].v[0]*scale2[0]+translate2[0])*lerp;
+			point[1] = (verts1[order[2]].v[1]*scale1[1]+translate1[1])*ilerp+(verts2[order[2]].v[1]*scale2[1]+translate2[1])*lerp;
+			point[2] = (verts1[order[2]].v[2]*scale1[2]+translate1[2])*ilerp+(verts2[order[2]].v[2]*scale2[2]+translate2[2])*lerp;
+
+			point[0] -= shadevector[0]*(point[2]+lheight);
+			point[1] -= shadevector[1]*(point[2]+lheight);
+			point[2] = height;
+//			height -= 0.001;
+			glVertex3fv(point);
+			order+=3;
+		} while (--count);
+		glEnd ();
+	}
+
+}
+
+
+
+
+
+
+
+/*
+
+=================
+
+R_SetupQ2AliasFrame
+
+
+
+=================
+
+*/
+
+void R_SetupQ2AliasFrame (entity_t *e, md2_t *pheader)
+
+{
+	int				frame;
+	float			lerp, lerpscale;
+	
+	frame = e->frame;
+      glPushMatrix ();
+	R_RotateForEntity (e);
+
+	if ((frame >= pheader->num_frames) || (frame < 0))
+	{
+		Con_DPrintf ("R_SetupQ2AliasFrame: no such frame %d\n", frame);
+		frame = 0;
+	}
+
+	if (e->draw_lastmodel == e->model)
+	{
+		if (frame != e->draw_pose)
+		{
+			e->draw_lastpose = e->draw_pose;
+			e->draw_pose = frame;
+			e->draw_lerpstart = cl.time;
+			lerp = 0;
+		}
+		else
+			lerp = (cl.time - e->draw_lerpstart) * 20.0;
+	}
+	else // uninitialized
+	{
+		e->draw_lastmodel = e->model;
+		e->draw_lastpose = e->draw_pose = frame;
+		e->draw_lerpstart = cl.time;
+		lerp = 0;
+	}
+	
+	
+	
+	if (lerp > 1) lerp = 1;
+		GL_DrawQ2AliasFrame (e, pheader, e->draw_lastpose, frame, lerp);	
+	if (r_shadows.value)
+	{
+		glDisable (GL_TEXTURE_2D);
+		glEnable (GL_BLEND);
+		glDepthMask(0); // disable zbuffer updates
+		glColor4f (0,0,0,0.5);// * modelalpha);
+		GL_DrawQ2AliasShadow (e, pheader, e->draw_lastpose, frame, lerp);
+		glDepthMask(1); // enable zbuffer updates
+		glEnable (GL_TEXTURE_2D);
+//		glDisable (GL_BLEND);
+		glColor3f (1,1,1);
+	}
+	
+	glPopMatrix ();
+}
+
+//Diabolickal MD2 Support Start
+
 /*
 =================
 R_DrawAliasModel
@@ -854,9 +1095,9 @@ void R_DrawAliasModel (entity_t *e)
 	int			index;
 	float		s, t, an;
 	int			anim;
+	md2_t		*pheader;		//Diabolickal MD2 Support
 	
 	bool    torch = false; // Flags is this model is a torch
-
 	clmodel = currententity->model;
 
 	VectorAdd (currententity->origin, clmodel->mins, mins);
@@ -864,7 +1105,6 @@ void R_DrawAliasModel (entity_t *e)
 
 	if (R_CullBox (mins, maxs))
 		return;
-
 
 	VectorCopy (currententity->origin, r_entorigin);
 	VectorSubtract (r_origin, r_entorigin, modelorg);
@@ -945,35 +1185,59 @@ void R_DrawAliasModel (entity_t *e)
 	//
 	// locate the proper data
 	//
-	paliashdr = (aliashdr_t *)Mod_Extradata (currententity->model);
+	//Diabolickal MD2 Support START
+	if (clmodel->aliastype == ALIASTYPE_MD2)
+	{
+		pheader = (md2_t *)Mod_Extradata (currententity->model);
+		c_alias_polys += pheader->num_tris;
+	}
+	else
+	{
+		paliashdr = (aliashdr_t *)Mod_Extradata (currententity->model);
+		c_alias_polys += paliashdr->numtris;
+	}
 
-	c_alias_polys += paliashdr->numtris;
-
+	//paliashdr = (aliashdr_t *)Mod_Extradata (currententity->model);		//Diabolickal MD2 Support (commented out)
+	//c_alias_polys += paliashdr->numtris;									//Diabolickal MD2 Support (commented out)
+	
+	//Diabolickal MD2 Support END
+	
 	//
 	// draw all the triangles
 	//
-
-    glPushMatrix ();
 	
-	// fenix@io.com: model transform interpolation
-	if (r_interpolate_model_transform.value){
-		R_BlendedRotateForEntity (e);
-	}else{
-		R_RotateForEntity (e);
-	}
+	
+	if (clmodel->aliastype != ALIASTYPE_MD2)			//Diabolickal MD2 Support
+	{
+		glPushMatrix ();
+		
+		// fenix@io.com: model transform interpolation
+		if (r_interpolate_model_transform.value){
+			R_BlendedRotateForEntity (e);
+		}else{
+			R_RotateForEntity (e);
+		}
 
-	if (!strcmp (clmodel->name, "progs/eyes.mdl") && gl_doubleeyes.value) {
-		glTranslatef (paliashdr->scale_origin[0], paliashdr->scale_origin[1], paliashdr->scale_origin[2] - 30);
-// double size of eyes, since they are really hard to see in gl
-		glScalef (paliashdr->scale[0]*2, paliashdr->scale[1]*2, paliashdr->scale[2]*2);
-	} else {
-		glTranslatef (paliashdr->scale_origin[0], paliashdr->scale_origin[1], paliashdr->scale_origin[2]);
-		glScalef (paliashdr->scale[0], paliashdr->scale[1], paliashdr->scale[2]);
-	}
+		if (!strcmp (clmodel->name, "progs/eyes.mdl") && gl_doubleeyes.value) {
+			glTranslatef (paliashdr->scale_origin[0], paliashdr->scale_origin[1], paliashdr->scale_origin[2] - 30);
+	// double size of eyes, since they are really hard to see in gl
+			glScalef (paliashdr->scale[0]*2, paliashdr->scale[1]*2, paliashdr->scale[2]*2);
+		} else {
+			glTranslatef (paliashdr->scale_origin[0], paliashdr->scale_origin[1], paliashdr->scale_origin[2]);
+			glScalef (paliashdr->scale[0], paliashdr->scale[1], paliashdr->scale[2]);
+		}
+	}		//Diabolickal MD2 Support END
+	//Diabolickal MD2 Support Start
+	if (clmodel->aliastype == ALIASTYPE_MD2)
+	    GL_Bind(pheader->gl_texturenum[currententity->skinnum]);
+	else																									//Diabolickal MD2 Support
+	{																										//Diabolickal MD2 Support
+		anim = (int)(cl.time*10) & 3;
+		GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
+	}																										//Diabolickal MD2 Support
 
-	anim = (int)(cl.time*10) & 3;
-    GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
-
+	//Diabolickal MD2 Support End
+	
 	// we can't dynamically colormap textures, so they are cached
 	// seperately for the players.  Heads are just uncolored.
 	if (currententity->colormap != vid.colormap && !gl_nocolors.value)
@@ -982,7 +1246,7 @@ void R_DrawAliasModel (entity_t *e)
 		if (i >= 1 && i<=cl.maxclients /* && !strcmp (currententity->model->name, "progs/player.mdl") */)
 		    GL_Bind(playertextures - 1 + i);
 	}
-
+	
 	//->if (gl_smoothmodels.value)
 	//->	glShadeModel (GL_SMOOTH);
 	GL_EnableState(GL_MODULATE);
@@ -990,12 +1254,18 @@ void R_DrawAliasModel (entity_t *e)
 	//->if (gl_affinemodels.value)
 	//->	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 
-	// fenix@io.com: model animation interpolation
-	if (r_interpolate_model_animation.value)
+	if (clmodel->aliastype == ALIASTYPE_MD2)																//Diabolickal MD2 Support
 	{
-		R_SetupAliasBlendedFrame (currententity->frame, paliashdr, currententity);
-	}else{
-		R_SetupAliasFrame (currententity->frame, paliashdr);
+		R_SetupQ2AliasFrame (currententity, pheader);														//Diabolickal MD2 Support
+	}
+	else {	
+	// fenix@io.com: model animation interpolation	
+		if (r_interpolate_model_animation.value)															//Diabolickal MD2 Support (added else)
+		{
+			R_SetupAliasBlendedFrame (currententity->frame, paliashdr, currententity);
+		}else{
+			R_SetupAliasFrame (currententity->frame, paliashdr);
+		}
 	}
 
 	GL_EnableState(GL_REPLACE);
@@ -1003,6 +1273,9 @@ void R_DrawAliasModel (entity_t *e)
 	//->glShadeModel (GL_FLAT);
 	//->if (gl_affinemodels.value)
 	//->	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+ if (clmodel->aliastype != ALIASTYPE_MD2)											//Diabolickal MD2 Support
+	{																				//Diabolickal MD2 Support
 
 	glPopMatrix ();
 	
@@ -1141,6 +1414,8 @@ void R_DrawAliasModel (entity_t *e)
 		GL_Color(1,1,1,1);
 		glPopMatrix ();
 	}
+	
+	}																										//Diabolickal MD2 Support
 
 }
 

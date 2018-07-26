@@ -322,6 +322,103 @@ extern	stvert_t	stverts[MAXALIASVERTS];
 extern	mtriangle_t	triangles[MAXALIASTRIS];
 extern	trivertx_t	*poseverts[MAXALIASFRAMES];
 
+//Diabolickal MD2 support start
+/*
+========================================================================
+
+.MD2 triangle model file format
+
+========================================================================
+*/
+
+// LordHavoc: grabbed this from the Q2 utility source,
+// renamed a things to avoid conflicts
+
+#define MD2IDALIASHEADER		(('2'<<24)+('P'<<16)+('D'<<8)+'I')
+#define MD2ALIAS_VERSION	8
+
+
+#define	MD2MAX_TRIANGLES	4096
+#define MD2MAX_VERTS		2048
+#define MD2MAX_FRAMES		1024
+#define MD2MAX_SKINS		32
+#define	MD2MAX_SKINNAME		64
+// sanity checking size
+#define MD2MAX_SIZE	(1024*4200)
+
+
+typedef struct
+{
+	short	s;
+	short	t;
+} md2stvert_t;
+
+
+typedef struct
+{
+	short	index_xyz[3];
+	short	index_st[3];
+} md2triangle_t;
+
+typedef struct
+{
+	byte	v[3];			// scaled byte to fit in frame mins/maxs
+	byte	lightnormalindex;
+} md2trivertx_t;
+
+#define MD2TRIVERTX_V0   0
+#define MD2TRIVERTX_V1   1
+#define MD2TRIVERTX_V2   2
+#define MD2TRIVERTX_LNI  3
+#define MD2TRIVERTX_SIZE 4
+
+typedef struct
+{
+	float		scale[3];	// multiply byte verts by this
+	float		translate[3];	// then add this
+	char		name[16];	// frame name from grabbing
+	md2trivertx_t	verts[1];	// variable sized
+} md2frame_t;
+
+// the glcmd format:
+// a positive integer starts a tristrip command, followed by that many
+// vertex structures.
+// a negative integer starts a trifan command, followed by -x vertexes
+// a zero indicates the end of the command list.
+// a vertex consists of a floating point s, a floating point t,
+// and an integer vertex index.
+typedef struct
+{
+	int			ident;
+	int			version;
+
+	int			skinwidth;
+	int			skinheight;
+	int			framesize;		// byte size of each frame
+
+
+	int			num_skins;
+	int			num_xyz;
+	int			num_st;			// greater than num_xyz for seams
+	int			num_tris;
+	int			num_glcmds;		// dwords in strip/fan command list
+	int			num_frames;
+
+	int			ofs_skins;		// each skin is a MAX_SKINNAME string
+	int			ofs_st;			// byte offset from start for stverts
+	int			ofs_tris;		// offset for dtriangles
+	int			ofs_frames;		// offset for first frame
+	int			ofs_glcmds;
+	int			ofs_end;		// end of file
+	
+	int			gl_texturenum[MAX_SKINS];
+} md2_t;
+#define ALIASTYPE_MDL 1
+#define ALIASTYPE_MD2 2
+
+//Diabolickal MD2 Support END
+
+
 //===================================================================
 
 //
@@ -410,6 +507,7 @@ typedef struct model_s
 	signed char	*entities;
 	
 	int			bspversion;		//Diabolickal HLBSP
+	int			aliastype;		//Diabolickal MD2 Support
 
 //
 // additional model data

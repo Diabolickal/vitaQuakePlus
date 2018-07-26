@@ -30,6 +30,8 @@ char	loadname[32];	// for hunk tags
 void Mod_LoadSpriteModel (model_t *mod, void *buffer);
 void Mod_LoadBrushModel (model_t *mod, void *buffer);
 void Mod_LoadAliasModel (model_t *mod, void *buffer);
+void Mod_LoadQ2AliasModel (model_t *mod, void *buffer);			//Diabolickal MD2 Support
+
 model_t *Mod_LoadModel (model_t *mod, bool crash);
 
 byte	mod_novis[MAX_MAP_LEAFS/8];
@@ -286,7 +288,13 @@ model_t *Mod_LoadModel (model_t *mod, bool crash)
 	case IDPOLYHEADER:
 		Mod_LoadAliasModel (mod, buf);
 		break;
-		
+	
+	//Diabolickal MD2 Support Start
+	case MD2IDALIASHEADER: // LordHavoc: added Quake2 model support
+		//Mod_LoadQ2AliasModel (mod, buf);								//Diabolickal MD2 support Disabled
+		Con_Printf("MD2s are currently broken, not loading MD2\n");
+		break;	
+	//Diabolickal MD2 Support End	
 	case IDSPRITEHEADER:
 		Mod_LoadSpriteModel (mod, buf);
 		break;
@@ -1744,6 +1752,165 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 
 	Hunk_FreeToLowMark (start);
 }
+
+//Diabolickal MD2 Support Start
+/*
+
+=================
+
+Mod_LoadQ2AliasModel
+
+=================
+
+*/
+
+//int loadtextureimage (int texnum, char* filename, qboolean complain, int matchwidth, int matchheight);
+
+
+
+void Mod_LoadQ2AliasModel (model_t *mod, void *buffer)
+{
+	int					i, j, version, numframes, numskins, size, *pinglcmd, *poutglcmd, start, end, total;
+	md2_t				*pinmodel, *pheader;
+	md2triangle_t		*pintriangles, *pouttriangles;
+	md2frame_t			*pinframe, *poutframe;
+	char				*pinskins, skinname[256], *skinnamebase;
+
+	start = Hunk_LowMark ();
+	
+	pinmodel = (md2_t *)buffer;
+
+	version = LittleLong (pinmodel->version);
+
+	if (version != MD2ALIAS_VERSION)
+		Sys_Error ("%s has wrong version number (%i should be %i)", mod->name, version, MD2ALIAS_VERSION);
+	
+	mod->type = mod_alias;
+	mod->aliastype = ALIASTYPE_MD2;
+
+// LordHavoc: see pheader ofs adjustment code below for why this is bigger
+	size = LittleLong(pinmodel->ofs_end) + sizeof(md2_t);
+	
+	if (size <= 0 || size >= MD2MAX_SIZE)
+		Sys_Error ("%s is not a valid model", mod->name);
+	
+	pheader = Hunk_AllocName (size, loadname);
+	mod->flags = 0; // there are no MD2 flags
+	
+// endian-adjust and copy the data, starting with the alias model header
+	for (i = 0;i < 17;i++) // LordHavoc: err... FIXME or something...
+		((int*)pheader)[i] = LittleLong(((int *)pinmodel)[i]);
+	mod->numframes = numframes = pheader->num_frames;
+	mod->synctype = ST_RAND;
+	
+	if (pheader->ofs_skins <= 0 || pheader->ofs_skins >= pheader->ofs_end)
+		Sys_Error ("%s is not a valid model", mod->name);
+	if (pheader->ofs_st <= 0 || pheader->ofs_st >= pheader->ofs_end)
+		Sys_Error ("%s is not a valid model", mod->name);
+	if (pheader->ofs_tris <= 0 || pheader->ofs_tris >= pheader->ofs_end)
+		Sys_Error ("%s is not a valid model", mod->name);
+	if (pheader->ofs_frames <= 0 || pheader->ofs_frames >= pheader->ofs_end)
+		Sys_Error ("%s is not a valid model", mod->name);
+	if (pheader->ofs_glcmds <= 0 || pheader->ofs_glcmds >= pheader->ofs_end)
+		Sys_Error ("%s is not a valid model", mod->name);
+
+	if (pheader->num_tris < 1 || pheader->num_tris > MD2MAX_TRIANGLES)
+		Sys_Error ("%s has invalid number of triangles: %i", mod->name, pheader->num_tris);
+	if (pheader->num_xyz < 1 || pheader->num_xyz > MD2MAX_VERTS)
+		Sys_Error ("%s has invalid number of vertices: %i", mod->name, pheader->num_xyz);
+	if (pheader->num_frames < 1 || pheader->num_frames > 256) //MD2MAX_FRAMES)
+		Sys_Error ("%s has invalid number of frames: %i", mod->name, pheader->num_frames);
+	if (pheader->num_skins < 0 || pheader->num_skins > MD2MAX_SKINS)
+		Sys_Error ("%s has invalid number of skins: %i", mod->name, pheader->num_skins);
+
+// LordHavoc: adjust offsets in new model to give us some room for the bigger header
+// cheap offsetting trick, just offset it all by the pheader size...mildly wasteful
+for (i = 0;i < 7;i++)
+        ((int*)&pheader->ofs_skins)[i] += sizeof(pheader);
+
+// load the skins
+	if (pheader->num_skins)
+	{
+		pinskins = (void*)((int) pinmodel + LittleLong(pinmodel->ofs_skins));
+		for (i = 0;i < pheader->num_skins;i++)
+		{
+			pheader->gl_texturenum[i] = loadtextureimage ("progs/p_plrifle_0", 0,0, qfalse, qfalse);
+			pinskins += MD2MAX_SKINNAME;
+		}
+	}
+	
+// load triangles
+	pintriangles = (void*)((int) pinmodel + LittleLong(pinmodel->ofs_tris));
+	pouttriangles = (void*)((int) pheader + pheader->ofs_tris);
+	// swap the triangle list
+	for (i=0 ; i < pheader->num_tris ; i++)
+	{
+		for (j=0 ; j<3 ; j++)
+		{
+			pouttriangles->index_xyz[j] = LittleShort (pintriangles->index_xyz[j]);
+			pouttriangles->index_st[j] = LittleShort (pintriangles->index_st[j]);
+			if (pouttriangles->index_xyz[j] >= pheader->num_xyz)
+				Sys_Error ("%s has invalid vertex indices", mod->name);
+			if (pouttriangles->index_st[j] >= pheader->num_st)
+				Sys_Error ("%s has invalid vertex indices", mod->name);
+		}
+		pintriangles++;
+		pouttriangles++;
+	}
+
+//
+// load the frames
+//
+	pinframe = (void*) ((int) pinmodel + LittleLong(pinmodel->ofs_frames));
+	poutframe = (void*) ((int) pheader + pheader->ofs_frames);
+	for (i=0 ; i < numframes ; i++)
+	{
+		for (j = 0;j < 3;j++)
+		{
+			poutframe->scale[j] = LittleFloat(pinframe->scale[j]);
+			poutframe->translate[j] = LittleFloat(pinframe->translate[j]);
+		}
+
+		for (j = 0;j < 17;j++)
+			poutframe->name[j] = pinframe->name[j];
+
+		for (j = 0;j < pheader->num_xyz;j++)
+		{
+			poutframe->verts[j].v[0] = pinframe->verts[j].v[0];
+			poutframe->verts[j].v[1] = pinframe->verts[j].v[1];
+			poutframe->verts[j].v[2] = pinframe->verts[j].v[2];
+			poutframe->verts[j].lightnormalindex = pinframe->verts[j].lightnormalindex;
+		}
+
+		pinframe = (void*) &pinframe->verts[j].v[0];
+		poutframe = (void*) &poutframe->verts[j].v[0];
+	}
+
+	// LordHavoc: I may fix this at some point
+	mod->mins[0] = mod->mins[1] = mod->mins[2] = -64;
+	mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = 64;
+
+	// load the draw list
+	pinglcmd = (void*) ((int) pinmodel + LittleLong(pinmodel->ofs_glcmds));
+	poutglcmd = (void*) ((int) pheader + pheader->ofs_glcmds);
+	for (i = 0;i < pheader->num_glcmds;i++)
+		*poutglcmd++ = LittleLong(*pinglcmd++);
+
+// move the complete, relocatable alias model to the cache
+	end = Hunk_LowMark ();
+	total = end - start;
+	
+	Cache_Alloc (&mod->cache, total, loadname);
+	if (!mod->cache.data)
+		return;
+	memcpy (mod->cache.data, pheader, total);
+	Hunk_FreeToLowMark (start);
+
+}
+
+//Diabolickal MD2 Support END
+
+
 
 //=============================================================================
 

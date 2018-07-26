@@ -1557,7 +1557,103 @@ int GL_LoadTexture32 (char *identifier, int width, int height, byte *data, qbool
 //Diabolickal TGA Begin
 int		image_width;
 int		image_height;
-#define	IMAGE_MAX_DIMENSIONS	4096
+#define	IMAGE_MAX_DIMENSIONS	512
+
+/*
+=================================================================
+  PCX Loading
+=================================================================
+*/
+
+typedef struct
+{
+    char	manufacturer;
+    char	version;
+    char	encoding;
+    char	bits_per_pixel;
+    unsigned short	xmin,ymin,xmax,ymax;
+    unsigned short	hres,vres;
+    unsigned char	palette[48];
+    char	reserved;
+    char	color_planes;
+    unsigned short	bytes_per_line;
+    unsigned short	palette_type;
+    char	filler[58];
+    unsigned 	data;			// unbounded
+} pcx_t;
+
+/*
+============
+LoadPCX
+============
+*/
+byte* LoadPCX (FILE *f, int matchwidth, int matchheight)
+{
+	pcx_t	*pcx, pcxbuf;
+	byte	palette[768];
+	byte	*pix, *image_rgba;
+	int		x, y;
+	int		dataByte, runLength;
+	int		count;
+
+//
+// parse the PCX file
+//
+	fread (&pcxbuf, 1, sizeof(pcxbuf), f);
+	pcx = &pcxbuf;
+
+	if (pcx->manufacturer != 0x0a
+		|| pcx->version != 5
+		|| pcx->encoding != 1
+		|| pcx->bits_per_pixel != 8
+		|| pcx->xmax >= 514
+		|| pcx->ymax >= 514)
+	{
+		Con_Printf ("Bad pcx file\n");
+		return NULL;
+	}
+	if (matchwidth && (pcx->xmax+1) != matchwidth)
+		return NULL;
+	if (matchheight && (pcx->ymax+1) != matchheight)
+		return NULL;
+	// seek to palette
+	fseek (f, -768, SEEK_END);
+	fread (palette, 1, 768, f);
+	fseek (f, sizeof(pcxbuf) - 4, SEEK_SET);
+	count = (pcx->xmax+1) * (pcx->ymax+1);
+	image_rgba = (byte*)malloc( count * 4);
+
+	for (y=0 ; y<=pcx->ymax ; y++)
+	{
+		pix = image_rgba + 4*y*(pcx->xmax+1);
+		for (x=0 ; x<=pcx->xmax ; ) // muff - fixed - was referencing ymax
+		{
+			dataByte = fgetc(f);
+			if((dataByte & 0xC0) == 0xC0)
+			{
+				runLength = dataByte & 0x3F;
+				dataByte = fgetc(f);
+			}
+			else
+				runLength = 1;
+
+			while(runLength-- > 0)
+			{
+				pix[0] = palette[dataByte*3];
+				pix[1] = palette[dataByte*3+1];
+				pix[2] = palette[dataByte*3+2];
+				pix[3] = 255;
+				pix += 4;
+				x++;
+			}
+		}
+	}
+	image_width = pcx->xmax+1;
+	image_height = pcx->ymax+1;
+	return image_rgba;
+}
+
+
 /*
 =========================================================
 
@@ -1648,7 +1744,7 @@ byte *LoadTGA (FILE *fin, int matchwidth, int matchheight)
 
 	if (header.width > IMAGE_MAX_DIMENSIONS || header.height > IMAGE_MAX_DIMENSIONS)
 	{
-		Con_DPrintf ("TGA image %s exceeds maximum supported dimensions\n");
+		Con_DPrintf ("TGA image %s exceeds maximum supported dimensions\n", fin);
 		fclose (fin);
 		return NULL;
 	}
@@ -1937,12 +2033,20 @@ byte* loadimagepixels (char* filename, qboolean complain, int matchwidth, int ma
 			*c = '+';
 		c++;
 	}
+	//Try TGA
 	sprintf (name, "%s.tga", basename);
 	COM_FOpenFile (name, &f);
 	if (f)
 		return LoadTGA (f, matchwidth, matchheight);
+	//Try PCX
+	sprintf (name, "%s.pcx", basename);
+	COM_FOpenFile (name, &f);
+	if (f)
+		return LoadPCX (f, matchwidth, matchheight);
+	
 	if (complain)
-		Con_Printf ("Couldn't load %s.tga", filename);
+		Con_Printf ("Couldn't load %s.tga or %s.pcx \n", filename);
+	
 	return NULL;
 }
 
