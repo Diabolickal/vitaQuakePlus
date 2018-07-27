@@ -211,6 +211,7 @@ extern	cvar_t	gl_reporttjunctions;
 extern	cvar_t	gl_flashblend;
 extern	cvar_t	gl_nocolors;
 extern	cvar_t	gl_doubleeyes;
+extern cvar_t	r_skybox;				//Diabolickal Skybox Support
 extern cvar_t gl_xflip;
 
 extern	int		gl_lightmap_format;
@@ -233,6 +234,9 @@ extern	const char *gl_extensions;
 
 void R_TranslatePlayerSkin (int playernum);
 void GL_Bind (int texnum);
+
+void R_LoadSkys (char *skyname);			//Diabolickal Skybox Support
+void Sky_NewMap (void);						//Diabolickal Skybox Support
 
 #ifndef _WIN32
 #define APIENTRY /* */

@@ -209,6 +209,7 @@ void R_Init (void)
 	Cvar_RegisterVariable (&gl_reporttjunctions);
 
 	Cvar_RegisterVariable (&gl_doubleeyes);
+	Cvar_RegisterVariable (&r_skybox);				//Diabolickal Skybox Support
 	
 	Cvar_RegisterVariable (&gl_torchflares); // Torch flares. KH
 	Cvar_RegisterVariable (&gl_xflip);
@@ -342,7 +343,6 @@ void R_TranslatePlayerSkin (int playernum)
 	free(translate32);
 }
 
-
 /*
 ===============
 R_NewMap
@@ -367,7 +367,7 @@ void R_NewMap (void)
 	R_ClearParticles ();
 
 	GL_BuildLightmaps ();
-
+	Sky_NewMap ();					//Diabolickal Skybox Support
 	// identify sky texture
 	skytexturenum = -1;
 	mirrortexturenum = -1;

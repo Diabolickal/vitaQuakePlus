@@ -142,6 +142,7 @@ cvar_t	gl_nocolors = {"gl_nocolors","0"};
 cvar_t	gl_keeptjunctions = {"gl_keeptjunctions","1"};
 cvar_t	gl_reporttjunctions = {"gl_reporttjunctions","0"};
 cvar_t	gl_doubleeyes = {"gl_doubleeyes", "1"};
+cvar_t r_skybox = {"r_skybox", "1", true};					//Diabolickal Skybox Support
 
 // Torch flares. KH
 cvar_t  gl_torchflares = {"gl_torchflares", "0", false};
